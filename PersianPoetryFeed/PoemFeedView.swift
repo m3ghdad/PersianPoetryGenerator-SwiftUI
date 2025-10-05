@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct PoemFeedView: View {
     @EnvironmentObject var poemViewModel: PoemViewModel
@@ -134,6 +135,12 @@ struct PoemFeedView: View {
         .onChange(of: authViewModel.isAuthenticated) { isAuthenticated in
             if isAuthenticated, let userId = authViewModel.user?.id {
                 // Load favorites from Supabase when user logs in
+                poemViewModel.loadFavoritesFromSupabase(userId: userId)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .userAuthenticated)) { notification in
+            if let userId = notification.object as? String {
+                // Load favorites when user is restored from storage
                 poemViewModel.loadFavoritesFromSupabase(userId: userId)
             }
         }

@@ -2,6 +2,10 @@ import Foundation
 import SwiftUI
 import Combine
 
+extension Notification.Name {
+    static let userAuthenticated = Notification.Name("userAuthenticated")
+}
+
 @MainActor
 class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
@@ -11,7 +15,7 @@ class AuthViewModel: ObservableObject {
     
     private let supabaseService = SupabaseService.shared
     
-    struct User: Identifiable {
+    struct User: Identifiable, Codable {
         let id: String
         let email: String
         let name: String?
@@ -24,10 +28,23 @@ class AuthViewModel: ObservableObject {
     }
     
     func checkAuthStatus() {
-        // For now, we'll start as unauthenticated
-        // In a real app, you'd check for stored session tokens
-        isAuthenticated = false
-        user = nil
+        // Check if we have stored user data
+        if let userData = UserDefaults.standard.data(forKey: "storedUser"),
+           let storedUser = try? JSONDecoder().decode(User.self, from: userData) {
+            self.user = storedUser
+            self.isAuthenticated = true
+            print("User restored from storage: \(storedUser.email)")
+            // Load fresh profile data
+            loadUserProfile()
+            // Notify that user is authenticated (this will trigger favorites loading)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Small delay to ensure the UI has updated
+                NotificationCenter.default.post(name: .userAuthenticated, object: storedUser.id)
+            }
+        } else {
+            isAuthenticated = false
+            user = nil
+        }
     }
     
     func signIn(email: String, password: String) {
@@ -41,6 +58,8 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = true
                     self.user = user
                     self.isLoading = false
+                    // Save user data for persistence
+                    self.saveUserData(user)
                     // Load user profile after successful authentication
                     self.loadUserProfile()
                 }
@@ -64,6 +83,8 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = true
                     self.user = user
                     self.isLoading = false
+                    // Save user data for persistence
+                    self.saveUserData(user)
                     // Load user profile after successful authentication
                     self.loadUserProfile()
                 }
@@ -79,6 +100,8 @@ class AuthViewModel: ObservableObject {
     func signOut() {
         isAuthenticated = false
         user = nil
+        // Clear stored user data
+        clearUserData()
         supabaseService.signOut()
     }
     
@@ -103,5 +126,22 @@ class AuthViewModel: ObservableObject {
                 print("Failed to load user profile: \(error)")
             }
         }
+    }
+    
+    // MARK: - Persistence Methods
+    
+    private func saveUserData(_ user: User) {
+        do {
+            let userData = try JSONEncoder().encode(user)
+            UserDefaults.standard.set(userData, forKey: "storedUser")
+            print("User data saved for persistence")
+        } catch {
+            print("Failed to save user data: \(error)")
+        }
+    }
+    
+    private func clearUserData() {
+        UserDefaults.standard.removeObject(forKey: "storedUser")
+        print("User data cleared")
     }
 }
