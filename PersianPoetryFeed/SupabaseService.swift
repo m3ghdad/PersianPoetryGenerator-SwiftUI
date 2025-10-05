@@ -229,26 +229,46 @@ class SupabaseService: ObservableObject {
     // MARK: - Profile
     
     func getProfile(userId: String) async throws -> UserProfile {
-        let url = URL(string: "\(SupabaseConfig.baseURL)/rest/v1/profiles?id=eq.\(userId)&select=name,profile_picture_url")!
+        // Use your server endpoint for profile
+        let url = URL(string: "\(SupabaseConfig.baseURL)/functions/v1/make-server-c192d0ee/profile")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(SupabaseConfig.publicAnonKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(SupabaseConfig.publicAnonKey)", forHTTPHeaderField: "Authorization")
+        // Use the stored access token for authenticated requests
+        if let token = accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue("Bearer \(SupabaseConfig.publicAnonKey)", forHTTPHeaderField: "Authorization")
+        }
+        
+        print("Fetching profile for user: \(userId)")
+        print("Profile URL: \(url)")
         
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw SupabaseError.networkError
         }
         
-        let profiles = try JSONDecoder().decode([UserProfile].self, from: data)
-        guard let profile = profiles.first else {
-            throw SupabaseError.custom("Profile not found")
+        print("Profile response status: \(httpResponse.statusCode)")
+        print("Profile response data: \(String(data: data, encoding: .utf8) ?? "No data")")
+        
+        if httpResponse.statusCode != 200 {
+            print("Profile API error: Status \(httpResponse.statusCode)")
+            if httpResponse.statusCode == 404 {
+                print("Profile not found for user - returning default profile")
+                return UserProfile(name: nil, profileImage: nil, userId: nil, updatedAt: nil)
+            }
+            throw SupabaseError.networkError
         }
         
-        return profile
+        // Parse the profile response from your server
+        // The server returns {"profile": {...}} format
+        let profileResponse = try JSONDecoder().decode(ProfileResponse.self, from: data)
+        
+        print("Decoded profile from server: \(profileResponse.profile)")
+        return profileResponse.profile
     }
 }
 
@@ -348,7 +368,25 @@ struct KVFavorite: Codable {
 
 struct UserProfile: Codable {
     let name: String?
-    let profile_picture_url: String?
+    let profileImage: String? // Base64 encoded image data
+    let userId: String?
+    let updatedAt: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case profileImage
+        case userId
+        case updatedAt
+    }
+    
+    // Computed property to get the profile picture URL for display
+    var profile_picture_url: String? {
+        return profileImage
+    }
+}
+
+struct ProfileResponse: Codable {
+    let profile: UserProfile
 }
 
 struct FavoritesResponse: Codable {

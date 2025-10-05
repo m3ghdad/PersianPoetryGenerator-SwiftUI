@@ -36,16 +36,32 @@ struct SettingsSheetView: View {
                         // User info
                         VStack {
                             if let profilePictureURL = authViewModel.user?.profilePictureURL, !profilePictureURL.isEmpty {
-                                AsyncImage(url: URL(string: profilePictureURL)) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 60, height: 60)
-                                        .clipShape(Circle())
-                                } placeholder: {
-                                    Image(systemName: "person.circle.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.blue)
+                                if profilePictureURL.hasPrefix("data:image") {
+                                    // Handle base64 image data
+                                    if let image = base64ToImage(profilePictureURL) {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 60, height: 60)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Image(systemName: "person.circle.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.blue)
+                                    }
+                                } else {
+                                    // Handle URL image
+                                    AsyncImage(url: URL(string: profilePictureURL)) { image in
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 60, height: 60)
+                                            .clipShape(Circle())
+                                    } placeholder: {
+                                        Image(systemName: "person.circle.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.blue)
+                                    }
                                 }
                             } else {
                                 Image(systemName: "person.circle.fill")
@@ -170,6 +186,18 @@ struct SettingsRowView: View {
             .cornerRadius(10)
         }
     }
+}
+
+// Helper function to convert base64 string to UIImage
+func base64ToImage(_ base64String: String) -> UIImage? {
+    // Remove data URL prefix if present
+    let base64String = base64String.replacingOccurrences(of: "data:image/[^;]+;base64,", with: "", options: .regularExpression)
+    
+    guard let data = Data(base64Encoded: base64String) else {
+        return nil
+    }
+    
+    return UIImage(data: data)
 }
 
 #Preview {

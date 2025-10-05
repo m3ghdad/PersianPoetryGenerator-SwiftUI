@@ -41,6 +41,8 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = true
                     self.user = user
                     self.isLoading = false
+                    // Load user profile after successful authentication
+                    self.loadUserProfile()
                 }
             } catch {
                 await MainActor.run {
@@ -62,6 +64,8 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = true
                     self.user = user
                     self.isLoading = false
+                    // Load user profile after successful authentication
+                    self.loadUserProfile()
                 }
             } catch {
                 await MainActor.run {
