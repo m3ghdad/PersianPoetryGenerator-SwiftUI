@@ -140,6 +140,7 @@ struct PoemFeedView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .userAuthenticated)) { notification in
             if let userId = notification.object as? String {
+                print("PoemFeedView: Received userAuthenticated notification for user: \(userId)")
                 // Load favorites when user is restored from storage
                 poemViewModel.loadFavoritesFromSupabase(userId: userId)
             }

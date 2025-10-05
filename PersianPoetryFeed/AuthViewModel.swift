@@ -44,6 +44,7 @@ class AuthViewModel: ObservableObject {
             // Notify that user is authenticated (this will trigger favorites loading)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 // Small delay to ensure the UI has updated
+                print("AuthViewModel: Posting userAuthenticated notification for user: \(storedUser.id)")
                 NotificationCenter.default.post(name: .userAuthenticated, object: storedUser.id)
             }
         } else {
