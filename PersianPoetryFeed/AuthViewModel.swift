@@ -20,6 +20,7 @@ class AuthViewModel: ObservableObject {
         let email: String
         let name: String?
         let profilePictureURL: String?
+        let accessToken: String?
     }
     
     init() {
@@ -34,6 +35,10 @@ class AuthViewModel: ObservableObject {
             self.user = storedUser
             self.isAuthenticated = true
             print("User restored from storage: \(storedUser.email)")
+            // Restore the access token to SupabaseService
+            if let accessToken = storedUser.accessToken {
+                supabaseService.restoreAccessToken(accessToken)
+            }
             // Load fresh profile data
             loadUserProfile()
             // Notify that user is authenticated (this will trigger favorites loading)
@@ -118,7 +123,8 @@ class AuthViewModel: ObservableObject {
                             id: currentUser.id,
                             email: currentUser.email,
                             name: profile.name ?? currentUser.name,
-                            profilePictureURL: profile.profile_picture_url ?? currentUser.profilePictureURL
+                            profilePictureURL: profile.profile_picture_url ?? currentUser.profilePictureURL,
+                            accessToken: currentUser.accessToken
                         )
                     }
                 }

@@ -16,6 +16,10 @@ class SupabaseService: ObservableObject {
         accessToken = nil
     }
     
+    func restoreAccessToken(_ token: String) {
+        accessToken = token
+    }
+    
     func signIn(email: String, password: String) async throws -> AuthViewModel.User {
         let url = URL(string: "\(SupabaseConfig.baseURL)/auth/v1/token?grant_type=password")!
         var request = URLRequest(url: url)
@@ -55,7 +59,8 @@ class SupabaseService: ObservableObject {
             id: authResponse.user.id,
             email: authResponse.user.email,
             name: authResponse.user.userMetadata?["name"] as? String,
-            profilePictureURL: authResponse.user.userMetadata?["avatar_url"] as? String
+            profilePictureURL: authResponse.user.userMetadata?["avatar_url"] as? String,
+            accessToken: authResponse.access_token
         )
     }
     
@@ -101,7 +106,8 @@ class SupabaseService: ObservableObject {
             id: authResponse.user.id,
             email: authResponse.user.email,
             name: authResponse.user.userMetadata?["name"] as? String,
-            profilePictureURL: authResponse.user.userMetadata?["avatar_url"] as? String
+            profilePictureURL: authResponse.user.userMetadata?["avatar_url"] as? String,
+            accessToken: authResponse.access_token
         )
     }
     
